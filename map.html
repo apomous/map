@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Карта Серебряного века</title>
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
+
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    font-family: system-ui, sans-serif;
+  }
+  #filters {
+    padding: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: #111;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #444;
+    background: #222;
+    color: #eee;
+    cursor: pointer;
+    font-size: 13px;
+    transition: 0.2s;
+  }
+  .filter-btn.active {
+    background: #fff;
+    color: #000;
+  }
+  #map {
+    width: 100%;
+    height: calc(100vh - 60px);
+  }
+  .balloon-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .balloon-img {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .balloon-text {
+    font-size: 13px;
+    line-height: 1.35;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="filters"></div>
+<div id="map"></div>
+
+<script>
+// === ФОТО ПРОКСИ ===
+function proxy(url) {
+  return "https://images.weserv.nl/?url=" + url.replace("https://", "");
+}
+
+// === SVG-ИКОНКИ (встроенные, Тильда не режет) ===
+const svgIcons = {
+  дом: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23ffe0b2' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>🏠</text></svg>",
+  гимназия: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23bbdefb' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>🏫</text></svg>",
+  музей: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23f3e5f5' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>🏺</text></svg>",
+  архив: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23c8e6c9' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>📜</text></svg>",
+  типография: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23ffccbc' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>🖨</text></svg>",
+  библиотека: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23e1f5fe' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>📚</text></svg>",
+  дума: "data:image/svg+xml;utf8,<svg width='34' height='34' xmlns='http://www.w3.org/2000/svg'><circle cx='17' cy='17' r='16' fill='%23f0f4c3' stroke='%23222' stroke-width='2'/><text x='50%' y='55%' text-anchor='middle' font-size='16'>🏛</text></svg>"
+};
+
+// === ТОЧКИ ===
+const points = [
+  {
+    name: "Дом-музей Колокольниковых",
+    coords: [57.1535, 65.5423],
+    category: "дом",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/3/3d/Tyumen_Kolokolnikovs_House.jpg"),
+    facts: "Здесь собирались местные литераторы и ссыльные интеллигенты.",
+    role: "Культурный салон дореволюционной Тюмени.",
+    works: "Сюда попадали издания с произведениями Блока, Белого, Брюсова."
+  },
+  {
+    name: "Тюменская областная научная библиотека",
+    coords: [57.1528, 65.5341],
+    category: "библиотека",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/4/4e/Tyumen_Library.jpg"),
+    facts: "Здесь читали журналы начала XX века.",
+    role: "Центр доступа к литературе Серебряного века.",
+    works: "В фонде — издания с Ахматовой, Блоком, Гумилёвым."
+  },
+  {
+    name: "Старое здание мужской гимназии",
+    coords: [57.1551, 65.5602],
+    category: "гимназия",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/8/8c/Tyumen_Gymnasium.jpg"),
+    facts: "Проходили литературные вечера и чтения.",
+    role: "Место формирования читательской аудитории Серебряного века.",
+    works: "Ученики обсуждали Блока, Белого, Сологуба."
+  },
+  {
+    name: "Типография Михайлова",
+    coords: [57.1509, 65.5348],
+    category: "типография",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/6/6d/Tyumen_typography.jpg"),
+    facts: "Печатала местные альманахи и статьи.",
+    role: "Канал распространения новых литературных идей.",
+    works: "Печатались тексты модернистов."
+  },
+  {
+    name: "Дом купца Чиркова",
+    coords: [57.1539, 65.5295],
+    category: "дом",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/5/5e/Tyumen_Chirkov_House.jpg"),
+    facts: "Домашние чтения интеллигенции.",
+    role: "Неофициальный литературный салон.",
+    works: "Обсуждали символизм и акмеизм."
+  },
+  {
+    name: "Тюменский краеведческий музей",
+    coords: [57.1564, 65.5347],
+    category: "музей",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/2/2e/Tyumen_Museum.jpg"),
+    facts: "Собирал документы о культурной жизни Тюмени.",
+    role: "Хранитель памяти о литературной среде.",
+    works: "Архивы по местным поэтам."
+  },
+  {
+    name: "Дом Машарова",
+    coords: [57.1547, 65.5428],
+    category: "дом",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/1/1a/Tyumen_Masharov_House.jpg"),
+    facts: "Меценаты поддерживали культуру.",
+    role: "Помощь в распространении литературы.",
+    works: "Финансировали подписку на журналы Серебряного века."
+  },
+  {
+    name: "Женская гимназия",
+    coords: [57.1531, 65.5389],
+    category: "гимназия",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/7/7c/Tyumen_Women_Gymnasium.jpg"),
+    facts: "Литературные кружки.",
+    role: "Формирование интереса к новой поэзии.",
+    works: "Читали Ахматову, Цветаеву, Гиппиус."
+  },
+  {
+    name: "Городская дума",
+    coords: [57.1524, 65.5317],
+    category: "дума",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/9/9b/Tyumen_Duma.jpg"),
+    facts: "Обсуждали культурные инициативы.",
+    role: "Центр культурной политики.",
+    works: "Поддерживали библиотечные фонды."
+  },
+  {
+    name: "Дом Колмакова",
+    coords: [57.1572, 65.5371],
+    category: "дом",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/3/3f/Tyumen_Kolmakov_House.jpg"),
+    facts: "Квартирные чтения.",
+    role: "Неформальная литературная среда.",
+    works: "Обсуждали модернистскую поэзию."
+  },
+  {
+    name: "Тюменский архив",
+    coords: [57.1498, 65.5259],
+    category: "архив",
+    photo: proxy("upload.wikimedia.org/wikipedia/commons/4/4f/Tyumen_Archive.jpg"),
+    facts: "Хранит документы по истории литературы.",
+    role: "Источник сведений о местных авторах.",
+    works: "Рукописи и письма начала XX века."
+  }
+];
+
+// === КАТЕГОРИИ ===
+const categories = {
+  "все": "Все",
+  "дом": "Дома",
+  "гимназия": "Гимназии",
+  "музей": "Музеи",
+  "архив": "Архив",
+  "типография": "Типография",
+  "библиотека": "Библиотека",
+  "дума": "Городская дума"
+};
+
+let map;
+let placemarks = [];
+
+// === ИНИЦИАЛИЗАЦИЯ КАРТЫ ===
+ymaps.ready(() => {
+  map = new ymaps.Map("map", {
+    center: [57.1522, 65.5272],
+    zoom: 13,
+    controls: ["zoomControl"],
+    type: "yandex#dark"
+  });
+
+  createFilters();
+  loadPoints();
+});
+
+// === СОЗДАНИЕ ТОЧЕК ===
+function loadPoints() {
+  placemarks.forEach(p => map.geoObjects.remove(p));
+  placemarks = [];
+
+  points.forEach(p => {
+    const balloon = `
+      <div>
+        <div class="balloon-title">${p.name}</div>
+        <img class="balloon-img" src="${p.photo}">
+        <div class="balloon-text"><b>Исторический контекст:</b> ${p.facts}</div>
+        <div class="balloon-text"><b>Роль места:</b> ${p.role}</div>
+        <div class="balloon-text"><b>Связь с Серебряным веком:</b> ${p.works}</div>
+      </div>
+    `;
+
+    const placemark = new ymaps.Placemark(
+      p.coords,
+      { balloonContent: balloon },
+      {
+        iconLayout: "default#image",
+        iconImageHref: svgIcons[p.category],
+        iconImageSize: [34, 34],
+        iconImageOffset: [-17, -17]
+      }
+    );
+
+    placemark.category = p.category;
+    map.geoObjects.add(placemark);
+    placemarks.push(placemark);
+  });
+}
+
+// === ФИЛЬТРЫ ===
+function createFilters() {
+  const container = document.getElementById("filters");
+
+  Object.keys(categories).forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = "filter-btn" + (cat === "все" ? " active" : "");
+    btn.textContent = categories[cat];
+
+    btn.onclick = () => {
+      document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+
+      placemarks.forEach(m => {
+        if (cat === "все" || m.category === cat) map.geoObjects.add(m);
+        else map.geoObjects.remove(m);
+      });
+    };
+
+    container.appendChild(btn);
+  });
+}
+</script>
+
+</body>
+</html>
