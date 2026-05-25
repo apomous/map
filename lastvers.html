@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Точки Серебряного века — Тюмень</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: Inter, Arial, Helvetica, sans-serif; background:#f5f5f5; }
+    #map { width: 100%; height: 100vh; }
+    .popup-title { font-weight:700; margin-bottom:6px; font-size:15px; }
+    .popup-img { width:100%; height:150px; object-fit:cover; border-radius:6px; margin-bottom:8px; display:block; }
+    .popup-line { font-size:13px; margin-bottom:6px; color:#222; }
+    .popup-small { font-size:12px; color:#555; margin-top:6px; }
+    .legend { padding:10px; display:flex; gap:8px; flex-wrap:wrap; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,0.08); border-radius:8px; margin:12px; position: absolute; z-index:1000; left:12px; top:12px; }
+    .filter-btn { padding:6px 12px; border-radius:999px; border:1px solid #d0d0d0; background:#fafafa; cursor:pointer; font-size:13px; }
+    .filter-btn.active { background:#222; color:#fff; border-color:#222; }
+    .marker-emoji { font-size:20px; line-height:1; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="filters" class="legend"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* === ДАННЫЕ ТОЧЕК (название, адрес, координаты, фото, краткая история, связь с Серебряным веком, роль) === */
+const points = [
+  {
+    id: "kolokolnikov",
+    name: "Дом‑музей усадьба Колокольниковых",
+    address: "ул. Республики, 18/20",
+    coords: [57.15350, 65.54230],
+    photo: "https://kudatumen.ru/uploads/19c2979cbfcfec6daeaa5ddbfc33fd17.jpg",
+    history: "Купеческая усадьба конца XIX — начала XX века, сохранённый городской дом с экспозицией по быту и культуре тюменского купечества.",
+    connection: "Такие купеческие дома были местом частных чтений, салонных встреч и меценатской поддержки литературы; создавали среду для распространения новых поэтических течений.",
+    role: "Культурный салон и место сохранения городской памяти; иллюстрация бытового и социального контекста эпохи."
+  },
+  {
+    id: "library",
+    name: "Тюменская областная научная библиотека им. Д. И. Менделеева",
+    address: "ул. Орджоникидзе, 59",
+    coords: [57.15280, 65.53410],
+    photo: "https://dynamic-media-cdn.tripadvisor.com/media/photo-o/0b/34/ea/6b/getlstd-property-photo.jpg?w=1200&h=1200&s=1",
+    history: "Главный библиотечный фонд региона, хранилище периодики, научных и редких изданий; учреждение с историей накопления коллекций.",
+    connection: "Библиотеки обеспечивали доступ к журналам, альманахам и сборникам поэзии и критики — ключевой канал распространения идей и текстов Серебряного века.",
+    role: "Информационный и читательский центр; место формирования и сохранения литературного наследия."
+  },
+  {
+    id: "kraeved",
+    name: "Краеведческий музей / «Городская дума» (музейный комплекс)",
+    address: "ул. Ленина, 2",
+    coords: [57.15640, 65.53470],
+    photo: "https://putihod.ru/wp-content/uploads/2019/02/img_1662.jpg",
+    history: "Музейный комплекс, включающий экспозиции по истории города и городской думе; хранитель локальных материалов и фотографий.",
+    connection: "Хранит документы и предметы, которые помогают реконструировать локальную культурную среду и биографии участников литературной жизни эпохи.",
+    role: "Экспозиционная и архивная платформа для локальной культурной памяти."
+  },
+  {
+    id: "cityduma",
+    name: "Тюменская городская дума",
+    address: "Первомайская, 2",
+    coords: [57.15240, 65.53170],
+    photo: "https://avatars.mds.yandex.net/get-altay/4587805/2a0000017ba8a39ea0eb47f968d8b86a217e/orig",
+    history: "Историческое административное здание, центр городского управления и общественной жизни.",
+    connection: "Городская администрация участвовала в поддержке библиотек, школ и культурных инициатив, формируя институциональные условия для культурной активности.",
+    role: "Институциональный контекст культурной жизни; место принятия решений, влияющих на образование и культуру."
+  },
+  {
+    id: "archive",
+    name: "Государственный архив Тюменской области",
+    address: "пр. Геологоразведчиков, 21",
+    coords: [57.14980, 65.52590],
+    photo: "https://avatars.mds.yandex.net/get-altay/3511135/2a000001785d5a6276aaaf104ba32a6562eb/XXL_height",
+    history: "Главный региональный архив, хранящий первичные документы, справочники, газеты и личные фонды.",
+    connection: "Источник дореволюционных справочников, переписки и газетных публикаций — ключ к верификации биографий и событий эпохи.",
+    role: "Ключевой ресурс для исторической проверки и реконструкции литературных связей."
+  },
+  {
+    id: "drama",
+    name: "Тюменский драматический театр",
+    address: "ул. Республики, 129",
+    coords: [57.15510, 65.53700],
+    photo: "https://cdn.culture.ru/images/75bd947b-9a31-5d63-b1f3-a477165add70",
+    history: "Главный драматический театр города, площадка для спектаклей и публичных мероприятий.",
+    connection: "Театр и публичные сцены были местом постановок, чтений и культурных встреч, где пересекались литература, поэзия и сценическое искусство.",
+    role: "Театральная площадка; место публичных чтений, постановок и культурных событий."
+  }
+];
+
+/* === Инициализация карты === */
+const map = L.map('map', { zoomControl: true }).setView([57.1528, 65.5350], 13);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+/* === Создаём маркеры с попапами (подробная информация) === */
+const markers = [];
+
+function chooseEmoji(id) {
+  if (id === "kolokolnikov" || id === "kraeved") return "🏛️";
+  if (id === "library") return "📚";
+  if (id === "archive") return "📜";
+  if (id === "drama") return "🎭";
+  if (id === "cityduma") return "🏛";
+  return "📍";
+}
+
+points.forEach(p => {
+  const iconHtml = `<div class="marker-emoji">${chooseEmoji(p.id)}</div>`;
+  const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [30,30] });
+
+  const popupHtml = `
+    <div style="min-width:260px">
+      <div class="popup-title">${p.name}</div>
+      <img class="popup-img" src="${p.photo}" alt="${p.name}">
+      <div class="popup-line"><b>Адрес:</b> ${p.address}</div>
+      <div class="popup-line"><b>Краткая история:</b> ${p.history}</div>
+      <div class="popup-line"><b>Связь с Серебряным веком:</b> ${p.connection}</div>
+      <div class="popup-small"><b>Роль:</b> ${p.role}</div>
+    </div>
+  `;
+
+  const marker = L.marker(p.coords, { icon }).bindPopup(popupHtml, { maxWidth: 320 });
+  marker._meta = { id: p.id };
+  marker.addTo(map);
+  markers.push(marker);
+});
+
+/* === Панель фильтров (простая) === */
+const filtersContainer = document.getElementById('filters');
+
+function clearActive() {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+}
+
+const allBtn = document.createElement('button');
+allBtn.className = 'filter-btn active';
+allBtn.textContent = 'Все точки';
+allBtn.onclick = () => {
+  clearActive();
+  allBtn.classList.add('active');
+  markers.forEach(m => m.addTo(map));
+};
+filtersContainer.appendChild(allBtn);
+
+const types = [
+  { key: 'museum', label: 'Музеи' },
+  { key: 'library', label: 'Библиотека' },
+  { key: 'archive', label: 'Архив' },
+  { key: 'theater', label: 'Театр' },
+  { key: 'admin', label: 'Админ' }
+];
+
+types.forEach(t => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn';
+  btn.textContent = t.label;
+  btn.onclick = () => {
+    clearActive();
+    btn.classList.add('active');
+    markers.forEach(m => {
+      const id = m._meta.id;
+      const emoji = chooseEmoji(id);
+      const match =
+        (t.key === 'museum' && emoji === '🏛️') ||
+        (t.key === 'library' && emoji === '📚') ||
+        (t.key === 'archive' && emoji === '📜') ||
+        (t.key === 'theater' && emoji === '🎭') ||
+        (t.key === 'admin' && emoji === '🏛');
+      if (match) m.addTo(map); else map.removeLayer(m);
+    });
+  };
+  filtersContainer.appendChild(btn);
+});
+
+/* === Удобство: открывать попап при клике на маркер и центрировать карту чуть выше маркера === */
+markers.forEach(m => {
+  m.on('click', function() {
+    const latlng = m.getLatLng();
+    map.panTo([latlng.lat + 0.0012, latlng.lng]);
+    m.openPopup();
+  });
+});
+
+/* Подсказка: для точной привязки координат замените coords в массиве points на точные значения. */
+</script>
+</body>
+</html>
