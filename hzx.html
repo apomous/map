@@ -1,0 +1,266 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  #map-wrapper {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-family: system-ui, sans-serif;
+  }
+  #filters {
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-btn {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #444;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .filter-btn.active {
+    background: #222;
+    color: #fff;
+  }
+  #map {
+    width: 100%;
+    height: 650px;
+    border-radius: 10px;
+  }
+
+  .marker-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #222;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .marker-house { background: #ffe0b2; }
+  .marker-gymnasium { background: #bbdefb; }
+  .marker-museum { background: #f3e5f5; }
+  .marker-archive { background: #c8e6c9; }
+  .marker-print { background: #ffccbc; }
+  .marker-library { background: #e1f5fe; }
+  .marker-duma { background: #f0f4c3; }
+</style>
+
+<div id="map-wrapper">
+  <div id="filters"></div>
+  <div id="map"></div>
+</div>
+
+<script>
+// === КАРТА ===
+const map = L.map('map').setView([57.1522, 65.5272], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+// === ФУНКЦИЯ ДЛЯ ПРОКСИ-КАРТИНОК ===
+function proxy(url) {
+  return "https://i0.wp.com/" + url.replace("https://", "");
+}
+
+// === ДАННЫЕ ===
+const points = [
+  {
+    name: "Дом-музей Колокольниковых",
+    coords: [57.1535, 65.5423],
+    category: "дом",
+    iconType: "house",
+    emoji: "🏛",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3d/Tyumen_Kolokolnikovs_House.jpg"),
+    facts: "Здесь собирались местные литераторы и ссыльные интеллигенты.",
+    role: "Культурный салон дореволюционной Тюмени.",
+    works: "Сюда попадали издания с произведениями Блока, Белого, Брюсова."
+  },
+  {
+    name: "Тюменская областная научная библиотека",
+    coords: [57.1528, 65.5341],
+    category: "библиотека",
+    iconType: "library",
+    emoji: "📚",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/4/4e/Tyumen_Library.jpg"),
+    facts: "Здесь читали журналы начала XX века.",
+    role: "Центр доступа к литературе Серебряного века.",
+    works: "В фонде — издания с Ахматовой, Блоком, Гумилёвым."
+  },
+  {
+    name: "Старое здание мужской гимназии",
+    coords: [57.1551, 65.5602],
+    category: "гимназия",
+    iconType: "gymnasium",
+    emoji: "🏫",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/8/8c/Tyumen_Gymnasium.jpg"),
+    facts: "Проходили литературные вечера и чтения.",
+    role: "Место формирования читательской аудитории Серебряного века.",
+    works: "Ученики обсуждали Блока, Белого, Сологуба."
+  },
+  {
+    name: "Типография Михайлова",
+    coords: [57.1509, 65.5348],
+    category: "типография",
+    iconType: "print",
+    emoji: "🖨",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/6/6d/Tyumen_typography.jpg"),
+    facts: "Печатала местные альманахи и статьи.",
+    role: "Канал распространения новых литературных идей.",
+    works: "Печатались тексты модернистов."
+  },
+  {
+    name: "Дом купца Чиркова",
+    coords: [57.1539, 65.5295],
+    category: "дом",
+    iconType: "house",
+    emoji: "🏠",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/5/5e/Tyumen_Chirkov_House.jpg"),
+    facts: "Домашние чтения интеллигенции.",
+    role: "Неофициальный литературный салон.",
+    works: "Обсуждали символизм и акмеизм."
+  },
+  {
+    name: "Тюменский краеведческий музей",
+    coords: [57.1564, 65.5347],
+    category: "музей",
+    iconType: "museum",
+    emoji: "🏺",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/2/2e/Tyumen_Museum.jpg"),
+    facts: "Собирал документы о культурной жизни Тюмени.",
+    role: "Хранитель памяти о литературной среде.",
+    works: "Архивы по местным поэтам."
+  },
+  {
+    name: "Дом Машарова",
+    coords: [57.1547, 65.5428],
+    category: "дом",
+    iconType: "house",
+    emoji: "🏛",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/1/1a/Tyumen_Masharov_House.jpg"),
+    facts: "Меценаты поддерживали культуру.",
+    role: "Помощь в распространении литературы.",
+    works: "Финансировали подписку на журналы Серебряного века."
+  },
+  {
+    name: "Женская гимназия",
+    coords: [57.1531, 65.5389],
+    category: "гимназия",
+    iconType: "gymnasium",
+    emoji: "🏫",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/7/7c/Tyumen_Women_Gymnasium.jpg"),
+    facts: "Литературные кружки.",
+    role: "Формирование интереса к новой поэзии.",
+    works: "Читали Ахматову, Цветаеву, Гиппиус."
+  },
+  {
+    name: "Городская дума",
+    coords: [57.1524, 65.5317],
+    category: "дума",
+    iconType: "duma",
+    emoji: "🏛",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/9/9b/Tyumen_Duma.jpg"),
+    facts: "Обсуждали культурные инициативы.",
+    role: "Центр культурной политики.",
+    works: "Поддерживали библиотечные фонды."
+  },
+  {
+    name: "Дом Колмакова",
+    coords: [57.1572, 65.5371],
+    category: "дом",
+    iconType: "house",
+    emoji: "🏠",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/3/3f/Tyumen_Kolmakov_House.jpg"),
+    facts: "Квартирные чтения.",
+    role: "Неформальная литературная среда.",
+    works: "Обсуждали модернистскую поэзию."
+  },
+  {
+    name: "Тюменский архив",
+    coords: [57.1498, 65.5259],
+    category: "архив",
+    iconType: "archive",
+    emoji: "📜",
+    photo: proxy("https://upload.wikimedia.org/wikipedia/commons/4/4f/Tyumen_Archive.jpg"),
+    facts: "Хранит документы по истории литературы.",
+    role: "Источник сведений о местных авторах.",
+    works: "Рукописи и письма начала XX века."
+  }
+];
+
+// === ИКОНКИ ===
+function createIcon(p) {
+  return L.divIcon({
+    className: `marker-icon marker-${p.iconType}`,
+    html: p.emoji,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13]
+  });
+}
+
+// === МАРКЕРЫ ===
+const markers = [];
+
+points.forEach(p => {
+  const marker = L.marker(p.coords, { icon: createIcon(p) });
+
+  const popup = `
+    <h3>${p.name}</h3>
+    <img src="${p.photo}" width="220" style="border-radius:6px; margin-bottom:8px;">
+    <p><b>Исторический контекст:</b> ${p.facts}</p>
+    <p><b>Роль места:</b> ${p.role}</p>
+    <p><b>Связь с Серебряным веком:</b> ${p.works}</p>
+  `;
+
+  marker.bindPopup(popup);
+  marker.category = p.category;
+  marker.addTo(map);
+  markers.push(marker);
+});
+
+// === ФИЛЬТРЫ ===
+const categories = {
+  "все": "Все",
+  "дом": "Дома",
+  "гимназия": "Гимназии",
+  "музей": "Музеи",
+  "архив": "Архив",
+  "типография": "Типография",
+  "библиотека": "Библиотека",
+  "дума": "Городская дума"
+};
+
+const filters = document.getElementById("filters");
+let active = "все";
+
+Object.keys(categories).forEach(cat => {
+  const btn = document.createElement("button");
+  btn.className = "filter-btn" + (cat === "все" ? " active" : "");
+  btn.textContent = categories[cat];
+  btn.onclick = () => {
+    active = cat;
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    applyFilter();
+  };
+  filters.appendChild(btn);
+});
+
+function applyFilter() {
+  markers.forEach(m => {
+    if (active === "все" || m.category === active) {
+      if (!map.hasLayer(m)) map.addLayer(m);
+    } else {
+      if (map.hasLayer(m)) map.removeLayer(m);
+    }
+  });
+}
+</script>
