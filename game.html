@@ -1,0 +1,117 @@
+<div id="start-screen" style="
+  position:relative; max-width:900px; margin:auto; text-align:center;
+  padding:40px; background:#1a1208; color:white; font-family:Georgia,serif;
+  border-radius:12px;">
+
+  <h1 style="font-size:36px; margin-bottom:20px;">Игра «Кабинет Поэта»</h1>
+
+  <p style="font-size:20px; line-height:1.5; max-width:600px; margin:auto;">
+    В кабинете поэта спрятан важный предмет.  
+    Исследуй комнату, нажимай на объекты и найди тот, что хранит тайну.
+  </p>
+
+  <button onclick="startGame()" style="
+    margin-top:30px; padding:14px 28px; font-size:18px;
+    background:#d4a047; color:#1a1208; border:none; border-radius:8px;
+    cursor:pointer; font-weight:bold;">
+    Продолжить
+  </button>
+</div>
+<div id="cabinet-game" style="display:none; position:relative; max-width:900px; margin:auto;">
+  <img src="https://apomous.github.io/map/IMG_4614.jpeg" style="width:100%; display:block;">
+
+  <svg viewBox="0 0 1000 700" style="position:absolute; inset:0; width:100%; height:100%;">
+
+    <!-- БЮСТ -->
+    <polygon class="zone correct"
+      points="640,120 720,130 780,200 810,300 800,420 740,520 660,500 620,350"
+      onclick="finalReveal()"></polygon>
+
+    <!-- ЛАМПА -->
+    <polygon class="zone"
+      points="120,260 180,240 230,280 210,340 150,360 120,330"
+      onclick="hint('Свет лампы дрожит… но тайна не здесь.')"></polygon>
+
+    <!-- ОТКРЫТАЯ КНИГА -->
+    <polygon class="zone"
+      points="300,380 420,360 500,400 480,480 340,500 300,450"
+      onclick="hint('На полях книги надпись: «Он всегда смотрит». Но сама книга — лишь намёк.')"></polygon>
+
+    <!-- СТОПКА КНИГ -->
+    <polygon class="zone"
+      points="500,330 560,330 580,360 560,380 500,380"
+      onclick="hint('Книги рассказывают о нём, но не прячут то, что ты ищешь.')"></polygon>
+
+    <!-- КРАСНАЯ КНИГА -->
+    <polygon class="zone"
+      points="820,420 880,420 880,500 820,500"
+      onclick="hint('Красная книга открыта на главе о скульптуре. Намёк слишком очевидный…')"></polygon>
+
+    <!-- ОКНО -->
+    <polygon class="zone"
+      points="700,80 900,80 900,300 700,300"
+      onclick="hint('В отражении стекла угадывается силуэт… неподвижный, тяжёлый, как камень.')"></polygon>
+
+    <!-- ПОРТРЕТ -->
+    <polygon class="zone"
+      points="260,80 360,80 360,200 260,200"
+      onclick="hint('Взгляд с портрета направлен вправо… будто он смотрит на того, кто застыл в камне.')"></polygon>
+
+  </svg>
+</div>
+<div id="modal" style="
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(3px);
+  justify-content:center; align-items:center; z-index:9999;">
+  <div style="
+    background:#fff; padding:24px; max-width:420px;
+    border-radius:10px; font-family:Georgia,serif;
+    text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+    <div id="modal-text" style="margin-bottom:20px; font-size:18px; line-height:1.5;"></div>
+    <button onclick="closeModal()" style="
+      padding:10px 22px; border:none; background:#d4a047; color:#1a1208;
+      cursor:pointer; border-radius:5px; font-weight:bold;">Закрыть</button>
+  </div>
+</div>
+
+<script>
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('cabinet-game').style.display = 'block';
+}
+
+function hint(text) {
+  document.getElementById('modal-text').innerHTML = text;
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function finalReveal() {
+  document.getElementById('modal-text').innerHTML =
+    "Вы прикасаетесь к мраморному бюсту…<br><br>" +
+    "Под постаментом — щель. Внутри — свернутый листок бумаги.<br>" +
+    "Это фрагмент пропавшей рукописи.<br><br>" +
+    "<i>Знания — сила. Стихи — могила. Но тайны живут дольше всех.</i>";
+  document.getElementById('modal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal').style.display = 'none';
+}
+</script>
+<style>
+.zone {
+  fill: rgba(212, 160, 71, 0.22); /* янтарный */
+  stroke: rgba(212, 160, 71, 0.95);
+  stroke-width: 4;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.zone:hover {
+  fill: rgba(255, 220, 150, 0.35);
+  stroke: #ffd27f;
+}
+.correct {
+  fill: rgba(255, 120, 80, 0.25);
+  stroke: rgba(255, 120, 80, 0.95);
+}
+</style>
