@@ -50,11 +50,42 @@
 
   <!-- ПОРТРЕТ -->
   <polygon class="zone"
-    points="250,70 380,70 380,220 250,220"></polygon>
+    points="100 276 100,85 280,90 280,280"></polygon>
 
 
 
   </svg>
+  <div id="coords" style="
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:rgba(0,0,0,0.7);
+  color:#fff;
+  padding:8px 12px;
+  border-radius:6px;
+  font-family:monospace;
+  font-size:14px;
+  z-index:999999;">
+  X: 0 | Y: 0
+</div>
+
+<script>
+document.addEventListener('mousemove', function(e) {
+    const img = document.querySelector('#cabinet-game img');
+    const rect = img.getBoundingClientRect();
+
+    // Проверяем, что курсор над изображением
+    if (e.clientX >= rect.left && e.clientX <= rect.right &&
+        e.clientY >= rect.top && e.clientY <= rect.bottom) {
+
+        // Нормализуем координаты под viewBox 1000x700
+        const x = Math.round((e.clientX - rect.left) * (1000 / rect.width));
+        const y = Math.round((e.clientY - rect.top) * (700 / rect.height));
+
+        document.getElementById('coords').innerText = X: ${x} | Y: ${y};
+    }
+});
+</script>
 </div>
 <div id="modal" style="
   display:none; position:fixed; inset:0;
