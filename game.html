@@ -20,7 +20,7 @@
 <div id="cabinet-game" style="display:none; position:relative; max-width:900px; margin:auto;">
   <img src="https://apomous.github.io/map/IMG_4614.jpeg" style="width:100%; display:block;">
 
-  <svg viewBox="0 0 1000 700" style="position:absolute; inset:0; width:100%; height:100%;">
+  <svg viewBox="0 0 1280 854" style="position:absolute; inset:0; width:100%; height:100%;">
 
     
 
@@ -50,7 +50,7 @@
 
   <!-- ПОРТРЕТ -->
   <polygon class="zone"
-    points="100 276 100,85 280,90 280,280"></polygon>
+    points="147,78 289,91 289,277 148,277"></polygon>
 
 
 
@@ -133,8 +133,8 @@ document.addEventListener('mousemove', function(e) {
         e.clientY >= rect.top && e.clientY <= rect.bottom) {
 
         // Нормализуем координаты под viewBox 1000x700
-        const x = Math.round((e.clientX - rect.left) * (1000 / rect.width));
-        const y = Math.round((e.clientY - rect.top) * (700 / rect.height));
+        const x = Math.round((e.clientX - rect.left) * (1280 / rect.width));
+        const y = Math.round((e.clientY - rect.top) * (854 / rect.height));
 
         document.getElementById('coords').innerText = `X: ${x} | Y: ${y}`;
     }
